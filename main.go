@@ -39,14 +39,16 @@ func (p *Process) execute(interrupt chan bool, tellPlanner chan<- int) {
 	}
 }
 
-func rrPlanner(tasks chan *Process) {
+func rrPlanner(tasks chan *Process) bool {
+	fmt.Println("	RR planner works(background)")
 	plannerTimer := time.NewTimer(rrTime).C
 	for {
 		var task *Process
 		select {
 		case task = <-tasks:
 		default: // no more tasks
-			return
+			//fmt.Println("No interactive tasks")
+			return false
 		}
 
 		processIn := make(chan int)
@@ -60,7 +62,7 @@ func rrPlanner(tasks chan *Process) {
 			if msg == SUSPENDED {
 				tasks <- task
 			}
-			return
+			return true
 		case <-time.NewTimer(rrOneTaskTime).C:
 			interrupt <- true //non blocking
 			msg := <-processIn
@@ -84,11 +86,12 @@ func setCurrentTask(tasks chan *Process) {
 	}
 }
 
-func fcfsPlanner(tasks chan *Process) {
+func fcfsPlanner(tasks chan *Process) bool {
+	fmt.Println("	FCFS planner works(interactive)")
 	timer := time.NewTimer(fcfsTime).C
 	for {
 		if setCurrentTask(tasks); currentTask == nil {
-			return
+			return false
 		}
 		processIn := make(chan int)
 		interrupt := make(chan bool, 1)
@@ -101,7 +104,7 @@ func fcfsPlanner(tasks chan *Process) {
 			if msg == FINISHED {
 				currentTask = nil
 			}
-			return
+			return true
 
 		case <-processIn: //got FINISHED
 			currentTask = nil
@@ -111,8 +114,13 @@ func fcfsPlanner(tasks chan *Process) {
 
 func planner(interTasks chan *Process, backgrTasks chan *Process) {
 	for {
-		rrPlanner(interTasks)
-		fcfsPlanner(backgrTasks)
+		if !rrPlanner(interTasks) {
+			if !fcfsPlanner(backgrTasks) {
+				return
+			}
+		} else {
+			fcfsPlanner(backgrTasks)
+		}
 	}
 }
 
