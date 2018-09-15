@@ -39,54 +39,38 @@ func (p *Process) execute(interrupt chan bool, tellPlanner chan<- int) {
 	}
 }
 
-//
-//func rrPlanner(tasks chan *Process) {
-//	for {
-//		finished := make(chan bool)
-//		interrupt := make(chan bool, 2)
-//
-//		select {
-//		case task := <-tasks:
-//			go rrPlannerTask(task, tasks, finished, interrupt)
-//			select {
-//			case <-time.NewTimer(rrTime).C:
-//				select {
-//				case interrupt <- true:
-//					<-interrupt //ok
-//				case <-finished:
-//				}
-//				return
-//			case <-finished:
-//			}
-//
-//		default:
-//			return
-//		}
-//
-//	}
-//}
-//
-//func rrPlannerTask(task *Process, tasks chan *Process, finish chan bool, interrupt chan bool) {
-//	for {
-//		finished := make(chan bool)
-//		//interrupt := make(chan bool)
-//		go task.execute(interrupt, finished)
-//		select {
-//		case <-time.NewTimer(rrOneTaskTime).C:
-//			select {
-//			case interrupt <- true:
-//				<-interrupt //ok
-//				tasks <- task
-//				finish <- true
-//			case <-finished:
-//				finish <- true
-//			}
-//			return
-//		case <-finished:
-//			finish <- true
-//		}
-//	}
-//}
+func rrPlanner(tasks chan *Process) {
+	plannerTimer := time.NewTimer(rrTime).C
+	for {
+		var task *Process
+		select {
+		case task = <-tasks:
+		default: // no more tasks
+			return
+		}
+
+		processIn := make(chan int)
+		interrupt := make(chan bool, 1)
+		go task.execute(interrupt, processIn)
+
+		select {
+		case <-plannerTimer:
+			interrupt <- true //non blocking
+			msg := <-processIn
+			if msg == SUSPENDED {
+				tasks <- task
+			}
+			return
+		case <-time.NewTimer(rrOneTaskTime).C:
+			interrupt <- true //non blocking
+			msg := <-processIn
+			if msg == SUSPENDED {
+				tasks <- task
+			}
+		case <-processIn: //got FINISHED
+		}
+	}
+}
 
 var currentTask *Process = nil
 
@@ -103,12 +87,11 @@ func setCurrentTask(tasks chan *Process) {
 func fcfsPlanner(tasks chan *Process) {
 	timer := time.NewTimer(fcfsTime).C
 	for {
-		processIn := make(chan int)
-		interrupt := make(chan bool, 1)
-
 		if setCurrentTask(tasks); currentTask == nil {
 			return
 		}
+		processIn := make(chan int)
+		interrupt := make(chan bool, 1)
 		go currentTask.execute(interrupt, processIn)
 
 		select {
@@ -128,21 +111,21 @@ func fcfsPlanner(tasks chan *Process) {
 
 func planner(interTasks chan *Process, backgrTasks chan *Process) {
 	for {
-		//rrPlanner(interTasks)
+		rrPlanner(interTasks)
 		fcfsPlanner(backgrTasks)
 	}
 }
 
 func main() {
 	interTasks := make(chan *Process, 100)
-	p1 := &Process{0, time.Duration(20 * time.Millisecond)}
+	p1 := &Process{0, time.Duration(60 * time.Millisecond)}
 	p2 := &Process{1, time.Duration(200 * time.Millisecond)}
 	interTasks <- p1
 	interTasks <- p2
 
 	backgrTasks := make(chan *Process, 100)
-	p3 := &Process{3, time.Duration(20 * time.Millisecond)}
-	p4 := &Process{4, time.Duration(200 * time.Millisecond)}
+	p3 := &Process{2, time.Duration(60 * time.Millisecond)}
+	p4 := &Process{3, time.Duration(200 * time.Millisecond)}
 	backgrTasks <- p3
 	backgrTasks <- p4
 
