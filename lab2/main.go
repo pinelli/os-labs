@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sync"
 )
 
@@ -12,18 +13,23 @@ type Changer struct {
 }
 
 type ChangerQuery struct {
-	change int
-	resp   chan []int
+	terminalId int
+	change     int
+	resp       chan []int
 }
 
 func (changer *Changer) run() {
 	for msg := range changer.queries {
-		fmt.Printf("%v\n", msg)
+		//	fmt.Fprintf("%v\n", msg)
 		coins := changer.bank.getCoins(msg.change)
-		msg.resp <- coins
+		fmt.Fprint(os.Stderr, "Changer: \n     give coins to the terminal #", msg.terminalId, ":")
+		fmt.Fprintln(os.Stderr, "	", coins)
+		fmt.Fprintln(os.Stderr, "	 bank:")
+
 		changer.bank.print()
+		msg.resp <- coins
 	}
-	changer.Done()
+	//changer.Done()
 }
 
 type TerminalQuery struct {
@@ -40,24 +46,25 @@ type Terminal struct {
 
 func printCoins(coins []int) {
 	if coins == nil {
-		fmt.Println("Terminal[term N]: no change")
+		fmt.Fprintln(os.Stderr, "No coins")
 	} else {
-		fmt.Println("Giving a change to the query [N] :", coins)
+		fmt.Fprintln(os.Stderr, coins)
 	}
 }
 func (terminal *Terminal) run() {
 	for q := range terminal.queries {
 		change := 100 - q.price
-		fmt.Println("Terminal (", terminal.id, "): \n "+
+		fmt.Fprintln(os.Stderr, "Terminal #", terminal.id, ": \n "+
 			"	query #", q.id, "| price -", q.price, "| change - ", change)
 
 		resp := make(chan []int)
-		terminal.changer.queries <- ChangerQuery{q.price, resp}
+		terminal.changer.queries <- ChangerQuery{terminal.id, change, resp}
 
 		coins := <-resp
+		fmt.Fprint(os.Stderr, "Terminal #", terminal.id, ":\n	 received coins: ")
 		printCoins(coins)
 	}
-	close(terminal.changer.queries)
+	//close(terminal.changer.queries)
 	terminal.Done()
 }
 
@@ -65,36 +72,44 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(2) //terminals
 
+	//Bank
 	coins := []int{1, 2, 5, 10, 25, 50, 100, 200}
 	amounts := []int{2, 4, 6, 8, 1, 1, 1, 1}
 	bank := &Bank{coins, amounts}
+	fmt.Fprintln(os.Stderr, "Init bank:")
+	bank.print()
 
+	//Changer
 	queries := make(chan ChangerQuery, 100)
 	changer := Changer{&wg, bank, queries}
 	go changer.run()
 
-	termQueries := make(chan TerminalQuery, 100)
-	terminal := Terminal{&wg, 0, changer, termQueries}
-	go terminal.run()
+	//Terminal1
+	term1Queries := make(chan TerminalQuery, 100)
+	terminal1 := Terminal{&wg, 1, changer, term1Queries}
 
-	termQueries <- TerminalQuery{0, 45}
-	close(termQueries)
-	//
-	//term1Response := make(chan []int)
-	//queries <- ChangerQuery{50, term1Response}
-	//
-	//term2Response := make(chan []int)
-	//queries <- ChangerQuery{70, term2Response}
-	//
-	//term3Response := make(chan []int)
-	//queries <- ChangerQuery{0, term3Response}
-	//
-	//r1 := <-term1Response
-	//r2 := <-term2Response
-	//r3 := <-term3Response
-	//fmt.Println("resp", r1)
-	//fmt.Println("resp", r2)
-	//fmt.Println("resp", r3)
-	//close(queries)
+	term1Queries <- TerminalQuery{0, 45}
+	term1Queries <- TerminalQuery{1, 35}
+	term1Queries <- TerminalQuery{2, 55}
+	term1Queries <- TerminalQuery{3, 27}
+	term1Queries <- TerminalQuery{4, 13}
+
+	close(term1Queries)
+
+	go terminal1.run()
+
+	//Terminal2
+	term2Queries := make(chan TerminalQuery, 100)
+	terminal2 := Terminal{&wg, 2, changer, term2Queries}
+	go terminal2.run()
+
+	term2Queries <- TerminalQuery{10, 18}
+	term2Queries <- TerminalQuery{11, 98}
+	term2Queries <- TerminalQuery{12, 13}
+
+	close(term2Queries)
+
+	//Finish
 	wg.Wait()
+	close(queries)
 }

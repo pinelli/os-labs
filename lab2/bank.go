@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/thoas/go-funk"
 	"math"
+	"os"
 	"sort"
 )
 
@@ -20,7 +21,7 @@ func (bank *Bank) getCoins(sum int) []int {
 
 func (bank *Bank) print() {
 	for i, coin := range bank.coins {
-		fmt.Println(coin, ":  ", bank.amounts[i])
+		fmt.Fprintln(os.Stderr, coin, ":  ", bank.amounts[i])
 	}
 }
 
