@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"github.com/thoas/go-funk"
 	"math"
-	"os"
 	"sort"
+	"strconv"
 )
 
 type Bank struct {
@@ -19,10 +18,13 @@ func (bank *Bank) getCoins(sum int) []int {
 	return coins
 }
 
-func (bank *Bank) print() {
+func (bank *Bank) String() string {
+	var str string
 	for i, coin := range bank.coins {
-		fmt.Fprintln(os.Stderr, coin, ":  ", bank.amounts[i])
+		//fmt.Fprintln(os.Stderr, coin, ":  ", bank.amounts[i])
+		str += strconv.Itoa(coin) + ":  " + strconv.Itoa(bank.amounts[i]) + "\n"
 	}
+	return str
 }
 
 func withdrawCoins(bank *Bank, coins []int) {
