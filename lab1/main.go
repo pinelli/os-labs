@@ -39,7 +39,7 @@ func (p *Process) execute(interrupt chan bool, tellPlanner chan<- int) {
 	}
 }
 
-func rrPlanner(tasks chan *Process) bool {
+func interPlanner(tasks chan *Process) bool {
 	fmt.Println("	RR planner works(background)")
 	plannerTimer := time.NewTimer(rrTime).C
 	for {
@@ -47,7 +47,6 @@ func rrPlanner(tasks chan *Process) bool {
 		select {
 		case task = <-tasks:
 		default: // no more tasks
-			//fmt.Println("No interactive tasks")
 			return false
 		}
 
@@ -86,7 +85,7 @@ func setCurrentTask(tasks chan *Process) {
 	}
 }
 
-func fcfsPlanner(tasks chan *Process) bool {
+func backgrPlanner(tasks chan *Process) bool {
 	fmt.Println("	FCFS planner works(interactive)")
 	timer := time.NewTimer(fcfsTime).C
 	for {
@@ -113,14 +112,10 @@ func fcfsPlanner(tasks chan *Process) bool {
 }
 
 func planner(interTasks chan *Process, backgrTasks chan *Process) {
-	for {
-		if !rrPlanner(interTasks) {
-			if !fcfsPlanner(backgrTasks) {
-				return
-			}
-		} else {
-			fcfsPlanner(backgrTasks)
-		}
+	moreInter := true
+	moreBackground := true
+	for moreInter || moreBackground {
+		moreInter, moreBackground = interPlanner(interTasks), backgrPlanner(backgrTasks)
 	}
 }
 
