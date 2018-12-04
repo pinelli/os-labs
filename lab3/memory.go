@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"sort"
 )
 
 var memory Memory
-var memSize = 26
+var memSize int // = 26
 
 type MmuEntry struct {
 	seg    *Seg
@@ -34,7 +33,7 @@ func (mem *Memory) add(entry *MmuEntry) {
 
 func (mem *Memory) print() {
 	//fmt.Println(([]*MmuEntry)(memory))
-	spew.Dump(memory)
+	//spew.Dump(memory)
 	cnt := 0
 	for _, e := range *mem {
 		if e.seg.len == 1 { //
@@ -54,7 +53,7 @@ func (mem *Memory) print() {
 			fmt.Println(cnt)
 		}
 
-		fmt.Println(cnt, "--------", " END ", e.seg.name)
+		fmt.Println(cnt, "--------", " 	END ", e.seg.name)
 		cnt++
 
 	}

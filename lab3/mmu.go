@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 func free(name string) bool {
 	for i, e := range memory {
 		if e.seg.name == name {
@@ -13,7 +11,7 @@ func free(name string) bool {
 }
 
 func alloc(seg *Seg) bool {
-	fmt.Print("Allocating ", seg.name, ", size:", seg.len, "->>")
+	//fmt.Println("Allocating ", seg.name, ", size:", seg.len, "->>")
 	size := seg.len
 	beg := 0
 	for _, e := range memory {
