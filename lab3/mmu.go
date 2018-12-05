@@ -20,6 +20,7 @@ func alloc(seg *Seg) bool {
 				seg:    seg,
 				offset: beg,
 			})
+
 			return true
 		}
 		beg = e.offset + e.seg.len

@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Proc struct {
 	id   string
@@ -55,6 +57,25 @@ type Seg struct {
 	len  int
 }
 
+func acess(segName string, offset int) {
+	fmt.Println("Access segment ", segName)
+	for _, e := range memory {
+		if e.seg.name == segName { //
+			if offset > e.seg.len-1 {
+				fmt.Println("Segmentation fault ")
+				return
+			}
+			fmt.Println("	Seg base: ", e.offset)
+			fmt.Println("	Offset: ", offset)
+			fmt.Println("Accessed. Seg base + offset =", e.offset+offset)
+
+			//fmt.Println(cnt, "--------", " ", e.seg.name, "&&", " END ", e.seg.name)
+			//cnt++
+			//continue
+		}
+	}
+}
+
 func main() {
 	memSize = 15
 
@@ -63,6 +84,8 @@ func main() {
 		addSeg(&Seg{name: "2", len: 3})
 	p1.allocate()
 	memory.print()
+
+	//acess("P_1_1", 1)
 
 	p2 := procCreate("2").
 		addSeg(&Seg{name: "1", len: 1}).
@@ -79,69 +102,10 @@ func main() {
 	p2.free()
 	memory.print()
 
+	//acess("P_1_2", 2) //3 -segfault
+
 	p4 := procCreate("4").
 		addSeg(&Seg{name: "1", len: 3}) //3 - 2
 	p4.allocate()
 	memory.print()
-
-	//s1 := &Seg{
-	//	name: "A",
-	//	len:  5,
-	//}
-	//
-	//s2 := &Seg{
-	//	name: "B",
-	//	len:  12,
-	//}
-	//
-	//s3 := &Seg{
-	//	name: "C",
-	//	len:  2,
-	//}
-	//
-	//s4 := &Seg{
-	//	name: "D",
-	//	len:  2,
-	//}
-	//
-	//s5 := &Seg{
-	//	name: "E",
-	//	len:  3,
-	//}
-	//
-	//s6 := &Seg{
-	//	name: "F",
-	//	len:  1,
-	//}
-	//
-	//s7 := &Seg{
-	//	name: "G",
-	//	len:  1,
-	//}
-	//
-	//s8 := &Seg{
-	//	name: "H",
-	//	len:  1,
-	//}
-	//
-	////
-	////memory.add(&MmuEntry{s1, 0})
-	////memory.add(&MmuEntry{s2, 20})
-	////memory.add(&MmuEntry{s3, 15})
-	//
-	//fmt.Println(alloc(s1))
-	//fmt.Println(alloc(s2))
-	//fmt.Println(alloc(s3))
-	//
-	////fmt.Println("FREE:")
-	//fmt.Println(free("A"))
-	////memory.print()
-	//fmt.Println(alloc(s4))
-	//fmt.Println(alloc(s5))
-	//fmt.Println(alloc(s1))
-	//fmt.Println(alloc(s6))
-	//fmt.Println(alloc(s7))
-	//fmt.Println(alloc(s8))
-	//
-	//memory.print()
 }
